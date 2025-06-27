@@ -103,7 +103,7 @@ run.plot_tensor_sequence("weights", bins=20)
 
 ### 5. Show Terminal Outputs
 ```python
-run.show_terminal_output(20) #last 20 lines
+run.show_terminal_output(20) #last 20 lines, 0 for all lines
 ```
 
 ### 6. Compare Metrics Across All Runs
