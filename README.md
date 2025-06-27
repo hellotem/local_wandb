@@ -103,7 +103,7 @@ run.plot_tensor_sequence("weights", bins=20)
 
 ### 5. Show Terminal Outputs
 ```python
-run.show_terminal_output()
+run.show_terminal_output(20) #last 20 lines
 ```
 
 ---
