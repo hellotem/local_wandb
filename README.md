@@ -49,7 +49,7 @@ for step in range(5):
 ```python
 import numpy as np
 img = np.random.rand(100, 100)
-run.log_image(img, name="random_noise", cmap="viridis")
+run.log_image({"name":img})
 ```
 
 ### 4. Log Matplotlib Figures
@@ -58,7 +58,7 @@ import matplotlib.pyplot as plt
 fig, ax = plt.subplots()
 ax.plot([0, 1], [1, 0])
 ax.set_title("Simple Plot")
-run.log_figure(fig, name="simple_plot")
+run.log_figure({"name":fig})
 ```
 
 ### 5. Log Tensor Sequences
@@ -66,7 +66,7 @@ run.log_figure(fig, name="simple_plot")
 import torch
 for step in range(5):
     t = torch.randn(1000) * (1 + step * 0.1)
-    run.log_tensor("weights", t, step=step)
+    run.log_tensor({"name":tensor}, step=step)
 ```
 
 ---
