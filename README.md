@@ -49,7 +49,7 @@ for step in range(5):
 ```python
 import numpy as np
 img = np.random.rand(100, 100)
-run.log_image({"name":img})
+run.log_image({"name":img}, step=step)
 ```
 
 ### 4. Log Matplotlib Figures
@@ -58,7 +58,7 @@ import matplotlib.pyplot as plt
 fig, ax = plt.subplots()
 ax.plot([0, 1], [1, 0])
 ax.set_title("Simple Plot")
-run.log_figure({"name":fig})
+run.log_figure({"name":fig}, step=step)
 ```
 
 ### 5. Log Tensor Sequences
