@@ -164,7 +164,7 @@ class LocalWandb:
         if self.config_path.exists():
             print(json.dumps(json.load(open(self.config_path)), indent=2))
 
-    def print_terminal(self, lines: int = 20):
+    def show_terminal_output(self, lines: int = 20):
         if self.terminal_log_path.exists():
             with open(self.terminal_log_path, 'r') as f:
                 lines = f.readlines()[-lines:]
