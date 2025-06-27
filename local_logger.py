@@ -160,7 +160,7 @@ class LocalWandb:
         plt.axis('off')
         plt.show()
 
-    def plot_tensor_sequence(self, name: str, bins: int = 20, figsize=(6,4), cmap='viridis'):
+    def plot_tensor_sequence(self, name: str, bins: int = 20, figsize=(6,4), cmap='OrRd'):
         """Show histogram-over-time for a tensor sequence."""
         if name not in self._tensor_buffers:
             print(f"No tensor '{name}' logged.")
