@@ -1,14 +1,33 @@
 import os
 import json
 import csv
+import sys
+import threading
 from datetime import datetime
 from pathlib import Path
+from contextlib import redirect_stdout
 
 import numpy as np
 import pandas as pd
 import torch
 import matplotlib.pyplot as plt
 from PIL import Image
+
+class TeeOutput:
+    def __init__(self, *streams):
+        self.streams = streams
+        self.lock = threading.Lock()
+
+    def write(self, msg):
+        with self.lock:
+            for s in self.streams:
+                s.write(msg)
+                s.flush()
+
+    def flush(self):
+        with self.lock:
+            for s in self.streams:
+                s.flush()
 
 class LocalWandb:
     def __init__(self, project: str, name: str = None, base_dir: str = "local_wandb", mode: str = "write"):
@@ -31,6 +50,13 @@ class LocalWandb:
             self._step = 0
             self._tensor_buffers = {}
             self._mode = "write"
+
+            # redirect terminal output to log AND display
+            self.terminal_log_path = self.run_dir / "terminal.txt"
+            self._terminal_log = open(self.terminal_log_path, "w")
+            self._original_stdout = sys.stdout
+            sys.stdout = TeeOutput(sys.stdout, self._terminal_log)
+
         elif mode == "read":
             self.run_dir = self.base_dir / project / name
             if not self.run_dir.exists():
@@ -48,6 +74,9 @@ class LocalWandb:
             for nm in self._tensor_buffers:
                 self._tensor_buffers[nm].sort(key=lambda x: x[0])
             self._mode = "read"
+
+            self.terminal_log_path = self.run_dir / "terminal.txt"
+            self._terminal_log = None
         else:
             raise ValueError("mode must be 'write' or 'read'")
 
@@ -92,7 +121,7 @@ class LocalWandb:
         self._tensor_buffers.setdefault(name, []).append((step, arr))
         np.save(self.tensor_dir / f"{name}_step_{step}.npy", arr)
 
-    def plot_metrics(self, keys=None, figsize=(8,4)):
+    def plot_metrics(self, keys=None, figsize=(10,6)):
         df = pd.read_csv(self.metrics_path) if self._mode=="write" else self.metrics_df
         keys = keys or [c for c in df.columns if c!='step']
         for k in keys:
@@ -105,7 +134,7 @@ class LocalWandb:
                 plt.grid(True)
                 plt.show()
 
-    def show_image(self, name: str, figsize=(6,6)):
+    def show_image(self, name: str, figsize=(10,10)):
         fname = name if name.endswith('.png') else f"{name}.png"
         path = self.images_dir / fname
         if not path.exists(): raise FileNotFoundError(fname)
@@ -113,10 +142,9 @@ class LocalWandb:
         plt.figure(figsize=figsize)
         plt.imshow(img)
         plt.axis('off')
-        plt.title(name)
         plt.show()
 
-    def plot_tensor_sequence(self, name: str, bins: int = 20, figsize=(6,4), cmap='OrRd'):
+    def plot_tensor_sequence(self, name: str, bins: int = 20, figsize=(10,6), cmap='OrRd'):
         if name not in self._tensor_buffers: return
         data = self._tensor_buffers[name]
         steps, arrays = zip(*data)
@@ -136,54 +164,19 @@ class LocalWandb:
         if self.config_path.exists():
             print(json.dumps(json.load(open(self.config_path)), indent=2))
 
+    def print_terminal(self, lines: int = 20):
+        if self.terminal_log_path.exists():
+            with open(self.terminal_log_path, 'r') as f:
+                lines = f.readlines()[-lines:]
+                print("".join(lines))
+
     def finish(self):
-        if self._mode=="write": self._metrics_file.close()
+        if self._mode == "write":
+            self._metrics_file.close()
+            sys.stdout = self._original_stdout
+            self._terminal_log.close()
 
     @staticmethod
     def list_runs(project: str, base_dir: str = "local_wandb"):
         proj = Path(base_dir) / project
         return [d.name for d in proj.iterdir() if d.is_dir()]
-
-
-# === TEST SCRIPT ============================================================
-def test_local_wandb():
-    # Write mode demonstration
-    run = LocalWandb("demo", "test", mode="write")
-    run.config({"lr":0.01, "epochs":5, "batch_size":16})
-
-    # Scalar logging
-    for step in range(5):
-        run.log({"loss": np.exp(-step/2), "acc": step/5}, step)
-
-    # Image logging
-    gradient = np.linspace(0,1,10000).reshape(100,100)
-    run.log_image(gradient, "gradient", cmap='plasma')
-
-    # Figure logging
-    fig, ax = plt.subplots()
-    x = np.linspace(0,10,100)
-    ax.plot(x, np.sin(x), label='sin')
-    ax.plot(x, np.cos(x), label='cos')
-    ax.legend()
-    ax.set_title('Trigonometric Functions')
-    run.log_figure(fig, "trig_fig")
-
-    # Tensor logging
-    for step in range(5):
-        t = torch.randn(500) * (1 + step*0.2)
-        run.log_tensor("weights", t, step)
-
-    run.finish()
-
-    # Read mode demonstration
-    runs = LocalWandb.list_runs("demo")
-    reader = LocalWandb("demo", runs[-1], mode="read")
-    print("Config:")
-    reader.show_config()
-    reader.plot_metrics()
-    reader.show_image("gradient")
-    reader.show_image("trig_fig")
-    reader.plot_tensor_sequence("weights", bins=15)
-
-if __name__ == "__main__":
-    test_local_wandb()
