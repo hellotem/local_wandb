@@ -16,8 +16,8 @@ All data is saved under a structured folder in `local_wandb/`.
 ```python
 from local_logger import LocalWandb
 
-# Create a run (write mode)
-run = LocalWandb(project="my_project", name="experiment_1", mode="write")
+# Create a run
+run = LocalWandb(project="my_project", name="experiment_1")
 ```
 
 This creates a folder:
