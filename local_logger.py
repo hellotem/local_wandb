@@ -121,7 +121,7 @@ class LocalWandb:
         self._tensor_buffers.setdefault(name, []).append((step, arr))
         np.save(self.tensor_dir / f"{name}_step_{step}.npy", arr)
 
-    def plot_metrics(self, keys=None, figsize=(10,6)):
+    def plot_metrics(self, keys=None, figsize=(8,4)):
         df = pd.read_csv(self.metrics_path) if self._mode=="write" else self.metrics_df
         keys = keys or [c for c in df.columns if c!='step']
         for k in keys:
@@ -134,7 +134,7 @@ class LocalWandb:
                 plt.grid(True)
                 plt.show()
 
-    def show_image(self, name: str, figsize=(10,10)):
+    def show_image(self, name: str, figsize=(6,6)):
         fname = name if name.endswith('.png') else f"{name}.png"
         path = self.images_dir / fname
         if not path.exists(): raise FileNotFoundError(fname)
@@ -144,7 +144,7 @@ class LocalWandb:
         plt.axis('off')
         plt.show()
 
-    def plot_tensor_sequence(self, name: str, bins: int = 20, figsize=(10,6), cmap='OrRd'):
+    def plot_tensor_sequence(self, name: str, bins: int = 20, figsize=(6,4), cmap='viridis'):
         if name not in self._tensor_buffers: return
         data = self._tensor_buffers[name]
         steps, arrays = zip(*data)
@@ -183,3 +183,22 @@ class LocalWandb:
             [d.name for d in proj.iterdir() if d.is_dir()],
             key=lambda name: datetime.strptime(f"{name.split("-")[1]}{name.split("-")[2]}","%Y%m%d%H%M%S")  # sort by timestamp part
         )
+
+    @staticmethod
+    def compare_metrics(project: str, metric: str, base_dir: str = "local_wandb", figsize=(8, 4)):
+        runs = LocalWandb.list_runs(project, base_dir)
+        plt.figure(figsize=figsize)
+        for run in runs:
+            path = Path(base_dir) / project / run / "metrics.csv"
+            if not path.exists():
+                continue
+            df = pd.read_csv(path)
+            if metric in df.columns:
+                plt.plot(df["step"], df[metric], label=run)
+        plt.title(f"Comparison of '{metric}' across runs")
+        plt.xlabel("Step")
+        plt.ylabel(metric)
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
