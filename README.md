@@ -101,6 +101,11 @@ run.show_image("simple_plot")
 run.plot_tensor_sequence("weights", bins=20)
 ```
 
+### 5. Show Terminal Outputs
+```python
+run.show_terminal_output()
+```
+
 ---
 
 ## ✅ Finalize Logging
