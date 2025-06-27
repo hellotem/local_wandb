@@ -106,7 +106,7 @@ run.plot_tensor_sequence("weights", bins=20)
 run.show_terminal_output(20) #last 20 lines
 ```
 
-### 6. compare Metrics Across All Runs
+### 6. Compare Metrics Across All Runs
 ```python
 run.compare_metrics(project='my_project', metric='loss')
 ```
