@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 
 class LocalWandb:
-    def __init__(self, project: str, name: str = None, base_dir: str = "runs", mode: str = "write"):
+    def __init__(self, project: str, name: str = None, base_dir: str = "local_wandb", mode: str = "write"):
         """
         Initialize logger.
         mode="write": create new run; mode="read": open existing run named `name`.
@@ -140,7 +140,7 @@ class LocalWandb:
         if self._mode=="write": self._metrics_file.close()
 
     @staticmethod
-    def list_runs(project: str, base_dir: str = "runs"):
+    def list_runs(project: str, base_dir: str = "local_wandb"):
         proj = Path(base_dir) / project
         return [d.name for d in proj.iterdir() if d.is_dir()]
 
