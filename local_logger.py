@@ -234,6 +234,9 @@ class LocalWandb:
                 print(f"Warning: run '{run}' not found, skipping.")
                 continue
             path = Path(base_dir) / project / run / "metrics.csv"
+            if not os.path.exists(path):
+                print(f"Warning: run '{run}' has no metrics, skipping.")
+                continue
             df = pd.read_csv(path)
             if metric in df.columns:
                 plt.plot(df['step'], df[metric], marker='o', label=run)
