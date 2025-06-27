@@ -108,7 +108,8 @@ run.show_terminal_output(20) #last 20 lines, 0 for all lines
 
 ### 6. Compare Metrics Across All Runs
 ```python
-run.compare_metrics(project='my_project', metric='loss')
+runs = LocalWandb.list_runs("my_project")
+run.compare_metrics(project='my_project', metric='loss', runs=runs[-10:]) #compare the last 10 runs
 ```
 
 ---
