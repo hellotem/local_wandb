@@ -133,11 +133,11 @@ for step in range(10):
     run.log_tensor("weights", tensor, step)
 
 img = np.outer(np.linspace(0, 1, 100), np.ones(100))
-run.log_image(img, "gradient", cmap="plasma")
+run.log_image({"gradient":img})
 
 fig, ax = plt.subplots()
 ax.plot([0, 1], [0, 1])
-run.log_figure(fig, "diagonal")
+run.log_figure({"diagonal":fig})
 
 ######## finish log and close files ##############
 run.finish()
