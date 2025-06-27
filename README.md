@@ -7,14 +7,14 @@ A lightweight local logging and visualization tool for machine learning experime
 - ✅ Tensor sequence tracking (e.g., weights over time)
 - ✅ Offline visualizations using Matplotlib
 
-All data is saved under a structured folder in `runs/`.
+All data is saved under a structured folder in `local_wandb/`.
 
 ---
 
 ## 🚀 Getting Started
 
 ```python
-from local_wandb import LocalWandb
+from local_logger import LocalWandb
 
 # Create a run (write mode)
 run = LocalWandb(project="my_project", name="experiment_1", mode="write")
@@ -23,7 +23,7 @@ run = LocalWandb(project="my_project", name="experiment_1", mode="write")
 This creates a folder:
 
 ```
-runs/my_project/run-YYYYMMDD-HHMMSS-experiment_1/
+local_wandb/my_project/run-YYYYMMDD-HHMMSS-experiment_1/
 ```
 
 ---
@@ -143,9 +143,9 @@ run.show_image("gradient")
 
 ## 🗂 Directory Layout
 ```
-runs/
+local_wandb/
 └── my_project/
-    └── run-20250627-153000-demo/
+    └── run-20250627-153000-experiment1/
         ├── config.json
         ├── metrics.csv
         ├── images/
