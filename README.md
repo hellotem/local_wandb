@@ -73,10 +73,10 @@ for step in range(5):
 
 ## 📊 Visualization APIs
 
-Reopen a past run in read mode:
+Visualize data of current run, or reopen a past run in read mode:
 ```python
-runs = LocalWandb.list_runs("my_project")
-run = LocalWandb("my_project", runs[-1], mode="read")
+runs = LocalWandb.list_runs("my_project")                 # list all runs
+run = LocalWandb("my_project", runs[-1], mode="read")     # visualize a specific run
 ```
 
 ### 1. Show Config
