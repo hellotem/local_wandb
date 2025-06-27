@@ -179,4 +179,7 @@ class LocalWandb:
     @staticmethod
     def list_runs(project: str, base_dir: str = "local_wandb"):
         proj = Path(base_dir) / project
-        return [d.name for d in proj.iterdir() if d.is_dir()]
+        return sorted(
+            [d.name for d in proj.iterdir() if d.is_dir()],
+            key=lambda name: datetime.strptime(f"{name.split("-")[1]}{name.split("-")[2]}","%Y%m%d%H%M%S")  # sort by timestamp part
+        )
