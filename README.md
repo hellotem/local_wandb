@@ -36,7 +36,7 @@ Put `local_wandb.py` and `local_wandb_ui.py` in the root directory of the projec
 from local_wandb import LocalWandb
 
 ######## create and init run ##############
-run = LocalWandb(project="my_project", name="demo", mode="write")
+run = LocalWandb(project="my_project", name="demo")
 run.config({"lr": 0.01})
 
 ######## log whatever you want ##############
