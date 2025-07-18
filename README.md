@@ -13,8 +13,10 @@ All data is saved under a structured folder in `local_wandb/`.
 
 ## 🧪 Example Workflow
 ```python
+from local_wandb import LocalWandb
+
 ######## create and init run ##############
-run = LocalWandb("my_project", "demo", mode="write")
+run = LocalWandb(project="my_project", name="demo", mode="write")
 run.config({"lr": 0.01})
 
 ######## log whatever you want ##############
