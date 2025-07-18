@@ -11,6 +11,46 @@ All data is saved under a structured folder in `local_wandb/`.
 
 ---
 
+## 🧪 Example Workflow
+```python
+######## create and init run ##############
+run = LocalWandb("my_project", "demo", mode="write")
+run.config({"lr": 0.01})
+
+######## log whatever you want ##############
+for step in range(10):
+    run.log({"loss": 1 / (step + 1), "acc": step / 10})
+    tensor = torch.randn(1000) * (1 + 0.1 * step)
+    run.log_tensor("weights", tensor, step)
+
+img = np.outer(np.linspace(0, 1, 100), np.ones(100))
+run.log_image({"gradient":img})
+
+fig, ax = plt.subplots()
+ax.plot([0, 1], [0, 1])
+run.log_figure({"diagonal":fig})
+
+######## finish log and close files ##############
+run.finish()
+```
+
+Then to visualize, run the GUI scripts `local_wandb_ui.py' or in python code:
+```python
+# open existing project and runs
+runs = LocalWandb.list_runs("my_project")
+run = LocalWandb("my_project", runs[-1], mode="read")
+
+run.show_config()
+run.plot_metrics()
+run.plot_tensor_sequence("weights")
+run.show_image("gradient")
+run.show_terminal_output(20)
+run.compare_metric(project="my_project", metric="loss")
+```
+
+---
+
+
 ## 🚀 Getting Started
 
 ```python
@@ -121,44 +161,6 @@ run.finish()  # Closes metrics.csv
 
 ---
 
-## 🧪 Example Workflow
-```python
-######## create and init run ##############
-run = LocalWandb("my_project", "demo", mode="write")
-run.config({"lr": 0.01})
-
-######## log whatever you want ##############
-for step in range(10):
-    run.log({"loss": 1 / (step + 1), "acc": step / 10})
-    tensor = torch.randn(1000) * (1 + 0.1 * step)
-    run.log_tensor("weights", tensor, step)
-
-img = np.outer(np.linspace(0, 1, 100), np.ones(100))
-run.log_image({"gradient":img})
-
-fig, ax = plt.subplots()
-ax.plot([0, 1], [0, 1])
-run.log_figure({"diagonal":fig})
-
-######## finish log and close files ##############
-run.finish()
-```
-
-Then to visualize:
-```python
-# open existing project and runs
-runs = LocalWandb.list_runs("my_project")
-run = LocalWandb("my_project", runs[-1], mode="read")
-
-run.show_config()
-run.plot_metrics()
-run.plot_tensor_sequence("weights")
-run.show_image("gradient")
-run.show_terminal_output(20)
-run.compare_metric(project="my_project", metric="loss")
-```
-
----
 
 ## 🗂 Directory Layout
 ```
