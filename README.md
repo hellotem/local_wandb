@@ -23,7 +23,7 @@ run.config({"lr": 0.01})
 for step in range(10):
     run.log({"loss": 1 / (step + 1), "acc": step / 10})
     tensor = torch.randn(1000) * (1 + 0.1 * step)
-    run.log_tensor("weights", tensor, step)
+    run.log_tensor({"weights": tensor}, step)
 
 img = np.outer(np.linspace(0, 1, 100), np.ones(100))
 run.log_image({"gradient":img})
@@ -71,7 +71,7 @@ local_wandb/my_project/run-YYYYMMDD-HHMMSS-experiment_1/
 ---
 
 ## 🔧 Logging APIs
-
+All log functions take a dict as the first input and step (optional) as the second input.
 ### 1. Log Config
 ```python
 run.config({
