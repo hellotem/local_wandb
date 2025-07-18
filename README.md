@@ -12,6 +12,7 @@ All data is saved under a structured folder in `local_wandb/`.
 ---
 
 ## 🧪 Example Workflow
+Put `local_wandb.py` and `local_wandb_ui.py` in the root directory of the project code. 
 ```python
 from local_wandb import LocalWandb
 
