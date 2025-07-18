@@ -5,7 +5,7 @@ A lightweight local logging and visualization tool for machine learning experime
 - ✅ Scalar metric logging (e.g., loss, accuracy)
 - ✅ Image and Matplotlib figure saving
 - ✅ Tensor sequence tracking (e.g., weights over time)
-- ✅ Offline GUI visualizations running `local_wandb_ui.py`
+- ✅ Offline GUI visualizations running `local_wandb_ui.py`(need to install PyQt5 package)
 - ✅ Support multiple runs selection for metric comparison.
 
 All data is saved under a structured folder in `local_wandb/`.
@@ -17,7 +17,7 @@ All data is saved under a structured folder in `local_wandb/`.
 - ✅ 标量指标跟踪（例如损失函数、准确率）
 - ✅ 图像和 Matplotlib 图形保存
 - ✅ 矩阵序列跟踪（例如权重随时间的变化）
-- ✅ 可运行 `local_wandb_ui.py` 进行离线 GUI 可视化
+- ✅ 可运行 `local_wandb_ui.py` 进行离线 GUI 可视化 (需安装PyQt5软件包)
 - ✅ 支持多个实验run同时选中进行指标对比
 
 
@@ -25,6 +25,11 @@ All data is saved under a structured folder in `local_wandb/`.
 
 ---
 
+<div align="center">
+<img src="./demo.png" width="300" alt="demo">
+</div>
+
+---
 ## 🧪 Example Workflow
 Put `local_wandb.py` and `local_wandb_ui.py` in the root directory of the project code. 
 ```python
