@@ -10,6 +10,7 @@ A lightweight local logging and visualization tool for machine learning experime
 All data is saved under a structured folder in `local_wandb/`.
 
 ---
+
 一款轻量级的本地化 `wandb` 的离线替代方案，提供以下功能：
 
 - ✅ 标量指标跟踪（例如损失函数、准确率）
@@ -18,6 +19,7 @@ All data is saved under a structured folder in `local_wandb/`.
 - ✅ 可运行 local_wandb_ui.py 进行离线 GUI 可视化
 
 所有数据均保存在 `local_wandb/` 的结构化文件夹中。
+
 ---
 
 ## 🧪 Example Workflow
