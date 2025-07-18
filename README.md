@@ -36,7 +36,7 @@ run.log_figure({"diagonal":fig})
 run.finish()
 ```
 
-Then to visualize, run the GUI scripts `local_wandb_ui.py' or in python code:
+Then to visualize, run the GUI script `local_wandb_ui.py` or in python code:
 ```python
 # open existing project and runs
 runs = LocalWandb.list_runs("my_project")
