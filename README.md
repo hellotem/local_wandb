@@ -1,4 +1,4 @@
-# LocalWandb
+# LocalWandB
 
 A lightweight local logging and visualization tool for machine learning experiments. Acts as an offline alternative to `wandb`, providing:
 
