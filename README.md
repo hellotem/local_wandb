@@ -5,7 +5,7 @@ A lightweight local logging and visualization tool for machine learning experime
 - ✅ Scalar metric logging (e.g., loss, accuracy)
 - ✅ Image and Matplotlib figure saving
 - ✅ Tensor sequence tracking (e.g., weights over time)
-- ✅ Offline visualizations using Matplotlib
+- ✅ Offline GUI visualizations running local_wandb_ui.py
 
 All data is saved under a structured folder in `local_wandb/`.
 
@@ -14,7 +14,7 @@ All data is saved under a structured folder in `local_wandb/`.
 ## 🚀 Getting Started
 
 ```python
-from local_logger import LocalWandb
+from local_wandb import LocalWandb
 
 # Create a run
 run = LocalWandb(project="my_project", name="experiment_1")
