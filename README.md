@@ -118,7 +118,7 @@ run.log_figure({"name":fig}, step=step)
 import torch
 for step in range(5):
     t = torch.randn(1000) * (1 + step * 0.1)
-    run.log_tensor({"name":tensor}, step=step)
+    run.log_tensor({"name":t}, step=step)
 ```
 
 ---
