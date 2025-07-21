@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Local-Wandb GUI – mutually-exclusive list selection, multi-run plots
+Local-Wandb GUI – fully working tensor customization
 """
 
 import sys, json, os, traceback, re
@@ -10,13 +10,14 @@ from datetime import datetime
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QComboBox, QListWidget, QLabel, QMessageBox, QTextEdit, QGroupBox,
-    QDialog, QSplitter, QAction, QMenuBar, QFileDialog, QPushButton
+    QDialog, QSplitter, QAction, QMenuBar, QFileDialog, QPushButton,
+    QSpinBox, QLineEdit, QFormLayout, QDialogButtonBox
 )
 from PyQt5.QtCore import Qt, QSettings
 from PyQt5.QtGui import QPixmap, QPalette, QColor, QKeySequence
 
 import matplotlib
-matplotlib.use('Qt5Agg')
+matplotlib.use("Qt5Agg")
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navi
 from matplotlib.figure import Figure
@@ -36,6 +37,37 @@ def show_error(parent, title, msg, detail=None):
     dlg.exec_()
 
 # ------------------------------------------------------------------
+class TensorConfigDialog(QDialog):
+    """Dialog to set bins & range for tensor heat-maps."""
+    def __init__(self, parent=None, bins=40, vmin=None, vmax=None):
+        super().__init__(parent)
+        self.setWindowTitle("Customize Tensor")
+        self.setFixedSize(260, 180)
+
+        form = QFormLayout(self)
+
+        self.bins_spin = QSpinBox()
+        self.bins_spin.setRange(5, 200)
+        self.bins_spin.setValue(bins)
+        form.addRow("Bins:", self.bins_spin)
+
+        self.min_edit = QLineEdit(str(vmin) if vmin is not None else "")
+        self.max_edit = QLineEdit(str(vmax) if vmax is not None else "")
+        form.addRow("Min value (empty=auto):", self.min_edit)
+        form.addRow("Max value (empty=auto):", self.max_edit)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        form.addRow(buttons)
+
+    def values(self):
+        bins = self.bins_spin.value()
+        vmin = float(self.min_edit.text()) if self.min_edit.text().strip() else None
+        vmax = float(self.max_edit.text()) if self.max_edit.text().strip() else None
+        return bins, vmin, vmax
+
+# ------------------------------------------------------------------
 class LoggerUI(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -45,9 +77,14 @@ class LoggerUI(QMainWindow):
         self.base_dir = "local_wandb"
         self.project = None
         self.lw_instances = {}
-
         self.settings = QSettings("local_logger", "ui")
         self.dark_mode = self.settings.value("dark", False, type=bool)
+
+        # tensor customisation defaults
+        self.tensor_bins = 40
+        self.tensor_vmin = None
+        self.tensor_vmax = None
+        self._last_tensor_name = None   # string, not QListWidgetItem
 
         self._build_ui()
         self._build_menu()
@@ -111,6 +148,10 @@ class LoggerUI(QMainWindow):
         self.terminal_btn = QPushButton("Show Terminal")
         self.terminal_btn.clicked.connect(self.show_terminal)
         bv.addWidget(self.terminal_btn)
+
+        self.tensor_cfg_btn = QPushButton("Customize Tensor")
+        self.tensor_cfg_btn.clicked.connect(self.open_tensor_config)
+        bv.addWidget(self.tensor_cfg_btn)
         lv.addWidget(btn_box)
 
         # right canvas
@@ -132,7 +173,6 @@ class LoggerUI(QMainWindow):
     # --------------------------------------------------------------
     def _build_menu(self):
         menubar = self.menuBar()
-
         file_menu = menubar.addMenu("File")
         open_act = QAction("Open Folder…", self)
         open_act.setShortcut(QKeySequence("Ctrl+O"))
@@ -159,6 +199,15 @@ class LoggerUI(QMainWindow):
             self.base_dir = new_dir
             self.populate_projects()
             self.load_runs(None)
+
+    # --------------------------------------------------------------
+    # tensor customisation dialog + auto-redraw
+    # --------------------------------------------------------------
+    def open_tensor_config(self):
+        dlg = TensorConfigDialog(self, self.tensor_bins, self.tensor_vmin, self.tensor_vmax)
+        if dlg.exec_():
+            self.tensor_bins, self.tensor_vmin, self.tensor_vmax = dlg.values()
+            self._redraw_tensor(self._last_tensor_name)
 
     # --------------------------------------------------------------
     # theme / sidebar
@@ -222,7 +271,6 @@ class LoggerUI(QMainWindow):
 
     def on_run_selection_changed(self):
         runs = [i.text() for i in self.run_list.selectedItems()]
-        # clear lists
         self.metric_list.clear()
         self.image_list.clear()
         self.tensor_list.clear()
@@ -321,9 +369,20 @@ class LoggerUI(QMainWindow):
 
     def show_tensor_sequence(self, item):
         self._clear_other_lists(self.tensor_list)
-        name = item.text()
+        tensor_name = item.text()
         runs = [i.text() for i in self.run_list.selectedItems()]
         if not runs:
+            return
+        self._last_tensor_name = tensor_name
+        self._redraw_tensor(tensor_name)
+
+    # --------------------------------------------------------------
+    # helper for tensor redrawing
+    # --------------------------------------------------------------
+    def _redraw_tensor(self, tensor_name):
+        """Redraw tensor heat-map using current settings."""
+        runs = [i.text() for i in self.run_list.selectedItems()]
+        if not runs or not tensor_name:
             return
         self.figure.clear()
         n = len(runs)
@@ -331,17 +390,18 @@ class LoggerUI(QMainWindow):
         rows = (n + cols - 1) // cols
         for idx, run in enumerate(runs, start=1):
             lw = self._get_lw(run)
-            if not lw or name not in lw._tensor_buffers:
+            if not lw or tensor_name not in lw._tensor_buffers:
                 continue
-            steps, arrays = zip(*sorted(lw._tensor_buffers[name]))
+            steps, arrays = zip(*sorted(lw._tensor_buffers[tensor_name]))
             all_vals = np.concatenate(arrays)
-            vmin, vmax = float(all_vals.min()), float(all_vals.max())
+            vmin = self.tensor_vmin if self.tensor_vmin is not None else float(all_vals.min())
+            vmax = self.tensor_vmax if self.tensor_vmax is not None else float(all_vals.max())
             if vmin == vmax:
                 delta = abs(vmin) * 0.01 if vmin != 0 else 1.0
                 vmin -= delta
                 vmax += delta
 
-            bins = 40
+            bins = self.tensor_bins
             bin_edges = np.linspace(vmin, vmax, bins + 1)
             heat = np.stack([np.histogram(arr, bins=bin_edges)[0] for arr in arrays], axis=1)
             bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
