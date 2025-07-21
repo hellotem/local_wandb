@@ -26,10 +26,10 @@ All data is saved under a structured folder in `local_wandb/`.
 ---
 
 <div align="center">
-<img src="./demo.png" width="1000" alt="fig1.png">
+<img src="./fig1.png" width="1000" alt="demo">
 </div>
 <div align="center">
-<img src="./demo.png" width="1000" alt="fig2.png">
+<img src="./fig2.png" width="1000" alt="demo">
 </div>
 
 ---
