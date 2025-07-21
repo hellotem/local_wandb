@@ -35,16 +35,16 @@ run.config({"lr": 0.01})
 
 ######## log whatever you want ##############
 for step in range(10):
-    run.log({"loss": 1 / (step + 1), "acc": step / 10})
+    run.log({"loss": 1 / (step + 1), "acc": step / 10}) # log scalar
     tensor = torch.randn(1000) * (1 + 0.1 * step)
-    run.log_tensor({"weights": tensor}, step)
+    run.log_tensor({"weights": tensor}, step) # log tensor
 
 img = np.outer(np.linspace(0, 1, 100), np.ones(100))
-run.log_image({"gradient":img})
+run.log_image({"gradient":img}) # log image
 
 fig, ax = plt.subplots()
 ax.plot([0, 1], [0, 1])
-run.log_figure({"diagonal":fig})
+run.log_figure({"diagonal":fig}) # log figure
 
 ######## finish log and close files ##############
 run.finish()
