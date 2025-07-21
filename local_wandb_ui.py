@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Local-Wandb GUI – tight layout, correct folder picker, fixed reload
+Local-Wandb GUI – mutually-exclusive list selection, multi-run plots
 """
 
 import sys, json, os, traceback, re
@@ -24,9 +24,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from local_wandb import LocalWandb
-import os
-# os.environ["QT_QPA_PLATFORM"] = "offscreen"
-# os.environ["QT_LOGGING_RULES"] = "*.debug=false;qt.qpa.*=false"
+
 # ------------------------------------------------------------------
 def show_error(parent, title, msg, detail=None):
     dlg = QMessageBox(parent)
@@ -117,7 +115,7 @@ class LoggerUI(QMainWindow):
 
         # right canvas
         self.figure = Figure(figsize=(6, 4))
-        self.figure.set_tight_layout(True)   # <-- tight layout
+        self.figure.set_tight_layout(True)
         self.canvas = FigureCanvas(self.figure)
         self.toolbar = Navi(self.canvas, self)
         right = QWidget()
@@ -215,23 +213,19 @@ class LoggerUI(QMainWindow):
             self.load_runs(self.project)
 
     # --------------------------------------------------------------
-    # run selection + enable/disable logic
+    # run selection – keep lists mutually exclusive
     # --------------------------------------------------------------
+    def _clear_other_lists(self, sender):
+        for lst in (self.metric_list, self.image_list, self.tensor_list):
+            if lst is not sender:
+                lst.clearSelection()
+
     def on_run_selection_changed(self):
         runs = [i.text() for i in self.run_list.selectedItems()]
-        multi = len(runs) != 1
-
         # clear lists
         self.metric_list.clear()
         self.image_list.clear()
         self.tensor_list.clear()
-
-        # enable/disable widgets
-        self.image_list.setEnabled(not multi)
-        self.tensor_list.setEnabled(not multi)
-        self.config_btn.setEnabled(not multi)
-        self.terminal_btn.setEnabled(not multi)
-
         if not runs:
             return
 
@@ -242,18 +236,16 @@ class LoggerUI(QMainWindow):
                 continue
             if hasattr(lw, 'metrics_df'):
                 metrics.update(c for c in lw.metrics_df.columns if c != 'step')
-            if not multi:  # single-run extras
-                img_dir = lw.run_dir / "images"
-                if img_dir.exists():
-                    images.update(p.name for p in img_dir.glob("*.png"))
-                for npy in lw.tensor_dir.glob("*.npy"):
-                    name = npy.stem.partition("_step_")[0]
-                    tensors.add(name)
+            img_dir = lw.run_dir / "images"
+            if img_dir.exists():
+                images.update(p.name for p in img_dir.glob("*.png"))
+            for npy in lw.tensor_dir.glob("*.npy"):
+                name = npy.stem.partition("_step_")[0]
+                tensors.add(name)
 
         self.metric_list.addItems(sorted(metrics))
-        if not multi:
-            self.image_list.addItems(sorted(images))
-            self.tensor_list.addItems(sorted(tensors))
+        self.image_list.addItems(sorted(images))
+        self.tensor_list.addItems(sorted(tensors))
 
     # --------------------------------------------------------------
     # LocalWandb cache
@@ -271,11 +263,14 @@ class LoggerUI(QMainWindow):
         return self.lw_instances[run_name]
 
     # --------------------------------------------------------------
-    # plotting
+    # plotting – mutually-exclusive list clicks
     # --------------------------------------------------------------
     def plot_metric(self, item):
+        self._clear_other_lists(self.metric_list)
         metric = item.text()
         runs = [i.text() for i in self.run_list.selectedItems()]
+        if not runs:
+            return
         self.figure.clear()
         ax = self.figure.add_subplot(111)
         plotted = 0
@@ -286,17 +281,13 @@ class LoggerUI(QMainWindow):
             df = lw.metrics_df
             if metric not in df.columns:
                 continue
-            try:
-                x = df['step'].to_numpy(dtype=float)
-                y = df[metric].to_numpy(dtype=float)
-                mask = ~np.isnan(y)
-                if not np.any(mask):
-                    continue
-                ax.plot(x[mask], y[mask], marker='o', label=run)
-                plotted += 1
-            except Exception as e:
-                show_error(self, f"Plot metric error", str(e))
+            x = df['step'].to_numpy(dtype=float)
+            y = df[metric].to_numpy(dtype=float)
+            mask = ~np.isnan(y)
+            if not np.any(mask):
                 continue
+            ax.plot(x[mask], y[mask], marker='o', label=run)
+            plotted += 1
         if plotted == 0:
             return
         ax.set_xlabel("step")
@@ -306,32 +297,44 @@ class LoggerUI(QMainWindow):
         self.canvas.draw()
 
     def show_image(self, item):
+        self._clear_other_lists(self.image_list)
         fname = item.text()
-        run = [i.text() for i in self.run_list.selectedItems()][0]
-        lw = self._get_lw(run)
-        if not lw:
+        runs = [i.text() for i in self.run_list.selectedItems()]
+        if not runs:
             return
-        path = lw.run_dir / "images" / fname
-        if path.exists():
-            try:
-                self.figure.clear()
-                ax = self.figure.add_subplot(111)
-                ax.imshow(plt.imread(path))
-                ax.axis('off')
-                self.canvas.draw()
-            except Exception as e:
-                show_error(self, "Image error", str(e))
+        self.figure.clear()
+        n = len(runs)
+        cols = min(n, 3)
+        rows = (n + cols - 1) // cols
+        for idx, run in enumerate(runs, start=1):
+            lw = self._get_lw(run)
+            if not lw:
+                continue
+            path = lw.run_dir / "images" / fname
+            if not path.exists():
+                continue
+            ax = self.figure.add_subplot(rows, cols, idx)
+            ax.imshow(plt.imread(path))
+            ax.set_title(run, fontsize=8)
+            ax.axis('off')
+        self.canvas.draw()
 
     def show_tensor_sequence(self, item):
+        self._clear_other_lists(self.tensor_list)
         name = item.text()
-        run = [i.text() for i in self.run_list.selectedItems()][0]
-        lw = self._get_lw(run)
-        if not lw or name not in lw._tensor_buffers:
+        runs = [i.text() for i in self.run_list.selectedItems()]
+        if not runs:
             return
-        try:
-            steps, arrays = zip(*lw._tensor_buffers[name])
-            steps_sorted, arrays_sorted = zip(*sorted(zip(steps, arrays)))
-            all_vals = np.concatenate(arrays_sorted)
+        self.figure.clear()
+        n = len(runs)
+        cols = min(n, 2)
+        rows = (n + cols - 1) // cols
+        for idx, run in enumerate(runs, start=1):
+            lw = self._get_lw(run)
+            if not lw or name not in lw._tensor_buffers:
+                continue
+            steps, arrays = zip(*sorted(lw._tensor_buffers[name]))
+            all_vals = np.concatenate(arrays)
             vmin, vmax = float(all_vals.min()), float(all_vals.max())
             if vmin == vmax:
                 delta = abs(vmin) * 0.01 if vmin != 0 else 1.0
@@ -340,21 +343,18 @@ class LoggerUI(QMainWindow):
 
             bins = 40
             bin_edges = np.linspace(vmin, vmax, bins + 1)
-            heat = np.stack([np.histogram(arr, bins=bin_edges)[0] for arr in arrays_sorted], axis=1)
+            heat = np.stack([np.histogram(arr, bins=bin_edges)[0] for arr in arrays], axis=1)
             bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+            extent = [steps[0], steps[-1], bin_centers[0], bin_centers[-1]]
 
-            self.figure.clear()
-            ax = self.figure.add_subplot(111)
-            extent = [steps_sorted[0], steps_sorted[-1], bin_centers[0], bin_centers[-1]]
+            ax = self.figure.add_subplot(rows, cols, idx)
             im = ax.imshow(heat, aspect='auto', origin='lower', cmap='OrRd',
                            extent=extent, interpolation='nearest')
+            ax.set_title(run, fontsize=8)
             ax.set_xlabel("step")
             ax.set_ylabel("value")
-            ax.set_title(f"Tensor: {name}")
             self.figure.colorbar(im, ax=ax, label='count')
-            self.canvas.draw()
-        except Exception as e:
-            show_error(self, "Tensor plot error", str(e))
+        self.canvas.draw()
 
     # --------------------------------------------------------------
     # dialogs
