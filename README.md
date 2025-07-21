@@ -24,15 +24,6 @@ All data is saved under a structured folder in `local_wandb/`.
 所有数据均保存在 `local_wandb/` 的结构化文件夹中。
 
 ---
-
-<div align="center">
-<img src="./fig1.png" width="1000" alt="demo">
-</div>
-<div align="center">
-<img src="./fig2.png" width="1000" alt="demo">
-</div>
-
----
 ## 🧪 Example Workflow
 Put `local_wandb.py` and `local_wandb_ui.py` in the root directory of the project code. 
 ```python
@@ -59,19 +50,15 @@ run.log_figure({"diagonal":fig})
 run.finish()
 ```
 
-Then to visualize, run the GUI script `local_wandb_ui.py` or in python code:
-```python
-# open existing project and runs
-runs = LocalWandb.list_runs("my_project")
-run = LocalWandb("my_project", runs[-1], mode="read")
+Then to visualize, run the GUI script `local_wandb_ui.py` 
 
-run.show_config()
-run.plot_metrics()
-run.plot_tensor_sequence("weights")
-run.show_image("gradient")
-run.show_terminal_output(20)
-run.compare_metric(project="my_project", metric="loss")
-```
+<div align="center">
+<img src="./fig1.png" width="1000" alt="demo">
+</div>
+<div align="center">
+<img src="./fig2.png" width="1000" alt="demo">
+</div>
+
 
 ---
 
