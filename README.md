@@ -158,7 +158,7 @@ run.plot_tensor_sequence("weights", bins=20)
 run.show_terminal_output(20) #last 20 lines, 0 for all lines
 ```
 
-### 6. Compare Metrics Across All Runs
+### 6. Compare Metrics Across Multiple Runs
 ```python
 runs = LocalWandb.list_runs("my_project")
 run.compare_metrics(project='my_project', metric='loss', runs=runs[-10:]) 
