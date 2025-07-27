@@ -276,6 +276,7 @@ class LoggerUI(QMainWindow):
 
     def on_run_selection_changed(self):
         runs = [i.text() for i in self.run_list.selectedItems()]
+        # clear lists
         self.metric_list.clear()
         self.image_list.clear()
         self.tensor_list.clear()
@@ -287,8 +288,10 @@ class LoggerUI(QMainWindow):
             lw = self._get_lw(r)
             if not lw:
                 continue
+            # metrics: only if dataframe exists
             if hasattr(lw, 'metrics_df'):
                 metrics.update(c for c in lw.metrics_df.columns if c != 'step')
+            # images & tensors: always
             img_dir = lw.run_dir / "images"
             if img_dir.exists():
                 images.update(p.name for p in img_dir.glob("*.png"))
@@ -393,6 +396,8 @@ class LoggerUI(QMainWindow):
         n = len(runs)
         cols = min(n, 2)
         rows = (n + cols - 1) // cols
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+
         for idx, run in enumerate(runs, start=1):
             lw = self._get_lw(run)
             if not lw or tensor_name not in lw._tensor_buffers:
@@ -408,7 +413,12 @@ class LoggerUI(QMainWindow):
 
             bins = self.tensor_bins
             bin_edges = np.linspace(vmin, vmax, bins + 1)
-            heat = np.stack([np.histogram(arr, bins=bin_edges)[0] for arr in arrays], axis=1)
+            hist_arr = []
+            for arr in arrays:
+                hist_arr.append(np.histogram(arr, bins=bin_edges)[0])
+                QApplication.processEvents()
+            heat = np.stack(hist_arr, axis=1)
+            # heat = np.stack([np.histogram(arr, bins=bin_edges)[0] for arr in arrays], axis=1)
             bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
             extent = [steps[0], steps[-1], bin_centers[0], bin_centers[-1]]
 
@@ -419,6 +429,7 @@ class LoggerUI(QMainWindow):
             ax.set_xlabel("step")
             ax.set_ylabel("value")
             self.figure.colorbar(im, ax=ax, label='count')
+        QApplication.restoreOverrideCursor()
         self.canvas.draw()
 
     # --------------------------------------------------------------
