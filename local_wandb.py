@@ -140,8 +140,10 @@ class LocalWandb:
                 arr = tensor.detach().cpu().numpy().ravel()
             elif isinstance(tensor, np.ndarray):
                 arr = tensor.ravel()
+            elif isinstance(tensor, ('list', 'tuple')):
+                arr = np.array(tensor).ravel()
             else:
-                raise Exception(f'Only torch tensor and numpy array are supported. Given {type(tensor)} for \"{name}\"')
+                raise Exception(f'Unsupported tensor type. Given {type(tensor)} for \"{name}\"')
             self._tensor_buffers.setdefault(name, []).append((step, arr))
             np.save(self.tensor_dir / f"{name}_step_{step}.npy", arr)
         self._step = step + 1
