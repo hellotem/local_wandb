@@ -66,7 +66,7 @@ class TensorConfigDialog(QDialog):
         bins = self.bins_spin.value()
         vmin = float(self.min_edit.text()) if self.min_edit.text().strip() else None
         vmax = float(self.max_edit.text()) if self.max_edit.text().strip() else None
-        num = float(self.num_edit.text()) if self.num_edit.text().strip() else None
+        num = int(self.num_edit.text()) if self.num_edit.text().strip() else None
         return bins, vmin, vmax, num
 
 # ------------------------------------------------------------------
