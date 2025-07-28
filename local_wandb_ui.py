@@ -100,8 +100,8 @@ class LoggerUI(QMainWindow):
 
         # left panel
         self.left_widget = QWidget()
-        self.left_widget.setMinimumWidth(300)
-        self.left_widget.setMaximumWidth(360)
+        self.left_widget.setMinimumWidth(250)
+        self.left_widget.setMaximumWidth(260)
         lv = QVBoxLayout(self.left_widget)
 
         theme_lay = QHBoxLayout()
@@ -113,10 +113,12 @@ class LoggerUI(QMainWindow):
         theme_lay.addWidget(self.theme_combo)
         lv.addLayout(theme_lay)
 
-        lv.addWidget(QLabel("Project"))
+        project_lay = QHBoxLayout()
+        project_lay.addWidget(QLabel("Project"))
         self.project_combo = QComboBox()
         self.project_combo.currentTextChanged.connect(self.load_runs)
-        lv.addWidget(self.project_combo)
+        project_lay.addWidget(self.project_combo)
+        lv.addLayout(project_lay)
 
         lv.addWidget(QLabel("Runs (multi-select)"))
         self.run_list = QListWidget()
@@ -152,7 +154,7 @@ class LoggerUI(QMainWindow):
         self.tensor_cfg_btn.clicked.connect(self.open_tensor_config)
         bv.addWidget(self.tensor_cfg_btn)
 
-        self.run_del_btn = QPushButton("Delete Run")
+        self.run_del_btn = QPushButton("Delete Runs")
         self.run_del_btn.clicked.connect(self.del_run)
         bv.addWidget(self.run_del_btn)
         lv.addWidget(btn_box)
@@ -231,7 +233,7 @@ class LoggerUI(QMainWindow):
 
         reply = QMessageBox.question(
             self, "Confirm deletion",
-            f"Delete {len(runs)} run(s)?\n{', '.join(runs)}",
+            f"Delete the selected {len(runs)} run(s) data PERMANENTLY?\n{', '.join(runs)}",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
@@ -254,7 +256,7 @@ class LoggerUI(QMainWindow):
             return
         reply = QMessageBox.question(
             self, "Confirm deletion",
-            f"Delete entire project '{self.project}' and ALL its runs?",
+            f"Delete the entire project '{self.project}' and ALL its runs data PERMANENTLY?",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
@@ -336,6 +338,9 @@ class LoggerUI(QMainWindow):
                 lst.clearSelection()
 
     def on_run_selection_changed(self):
+        
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        
         runs = [i.text() for i in self.run_list.selectedItems()]
         # clear lists
         self.metric_list.clear()
@@ -345,6 +350,7 @@ class LoggerUI(QMainWindow):
             return
 
         metrics, images, tensors = set(), set(), set()
+
         for r in runs:
             lw = self._get_lw(r)
             if not lw:
@@ -356,13 +362,18 @@ class LoggerUI(QMainWindow):
             img_dir = lw.run_dir / "images"
             if img_dir.exists():
                 images.update(p.name for p in img_dir.glob("*.png"))
+                QApplication.processEvents()
             for npy in lw.tensor_dir.glob("*.npy"):
                 name = npy.stem.partition("_step_")[0]
                 tensors.add(name)
+                QApplication.processEvents()
+
+            QApplication.processEvents()
 
         self.metric_list.addItems(sorted(metrics))
         self.image_list.addItems(sorted(images))
         self.tensor_list.addItems(sorted(tensors))
+        QApplication.restoreOverrideCursor()
 
     # --------------------------------------------------------------
     # LocalWandb cache
