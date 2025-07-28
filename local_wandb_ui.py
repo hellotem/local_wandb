@@ -151,6 +151,10 @@ class LoggerUI(QMainWindow):
         self.tensor_cfg_btn = QPushButton("Customize Tensor")
         self.tensor_cfg_btn.clicked.connect(self.open_tensor_config)
         bv.addWidget(self.tensor_cfg_btn)
+
+        self.run_del_btn = QPushButton("Delete Run")
+        self.run_del_btn.clicked.connect(self.del_run)
+        bv.addWidget(self.run_del_btn)
         lv.addWidget(btn_box)
 
         # right canvas
@@ -213,7 +217,30 @@ class LoggerUI(QMainWindow):
         if dlg.exec_():
             self.tensor_bins, self.tensor_vmin, self.tensor_vmax = dlg.values()
             self._redraw_tensor(self._last_tensor_name)
+    def del_run(self):
+        runs = [i.text() for i in self.run_list.selectedItems()]
+        if not runs:
+            QMessageBox.information(self, "Info", "No runs selected.")
+            return
 
+        reply = QMessageBox.question(
+            self, "Confirm deletion",
+            f"Delete {len(runs)} run(s)?\n{', '.join(runs)}",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        for run in runs:
+            path = Path(self.base_dir) / self.project / run
+            if path.exists():
+                try:
+                    import shutil
+                    shutil.rmtree(path)
+                except Exception as e:
+                    show_error(self, "Deletion failed", str(e))
+        self.load_runs(self.project)
     # --------------------------------------------------------------
     # theme / sidebar
     # --------------------------------------------------------------
