@@ -6,7 +6,7 @@ Local-Wandb GUI – fully working tensor customization
 import sys, json, os, traceback, re
 from pathlib import Path
 from datetime import datetime
-
+import torch
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QComboBox, QListWidget, QLabel, QMessageBox, QTextEdit, QGroupBox,
@@ -38,7 +38,7 @@ def show_error(parent, title, msg, detail=None):
 # ------------------------------------------------------------------
 class TensorConfigDialog(QDialog):
     """Dialog to set bins & range for tensor heat-maps."""
-    def __init__(self, parent=None, bins=40, vmin=None, vmax=None):
+    def __init__(self, parent=None, bins=40, vmin=None, vmax=None, num=None):
         super().__init__(parent)
         self.setWindowTitle("Customize Tensor")
         self.setFixedSize(260, 180)
@@ -52,8 +52,10 @@ class TensorConfigDialog(QDialog):
 
         self.min_edit = QLineEdit(str(vmin) if vmin is not None else "")
         self.max_edit = QLineEdit(str(vmax) if vmax is not None else "")
+        self.num_edit = QLineEdit(str(num) if num is not None else "")
         form.addRow("Min value (empty=auto):", self.min_edit)
         form.addRow("Max value (empty=auto):", self.max_edit)
+        form.addRow("Downsample (empty=all):", self.num_edit)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self.accept)
@@ -64,7 +66,8 @@ class TensorConfigDialog(QDialog):
         bins = self.bins_spin.value()
         vmin = float(self.min_edit.text()) if self.min_edit.text().strip() else None
         vmax = float(self.max_edit.text()) if self.max_edit.text().strip() else None
-        return bins, vmin, vmax
+        num = float(self.num_edit.text()) if self.num_edit.text().strip() else None
+        return bins, vmin, vmax, num
 
 # ------------------------------------------------------------------
 class LoggerUI(QMainWindow):
@@ -83,6 +86,7 @@ class LoggerUI(QMainWindow):
         self.tensor_bins = 40
         self.tensor_vmin = None
         self.tensor_vmax = None
+        self.tensor_num = 10000
         self._last_tensor_name = None   # string, not QListWidgetItem
 
         self._build_ui()
@@ -221,9 +225,9 @@ class LoggerUI(QMainWindow):
     # tensor customisation dialog + auto-redraw
     # --------------------------------------------------------------
     def open_tensor_config(self):
-        dlg = TensorConfigDialog(self, self.tensor_bins, self.tensor_vmin, self.tensor_vmax)
+        dlg = TensorConfigDialog(self, self.tensor_bins, self.tensor_vmin, self.tensor_vmax, self.tensor_num)
         if dlg.exec_():
-            self.tensor_bins, self.tensor_vmin, self.tensor_vmax = dlg.values()
+            self.tensor_bins, self.tensor_vmin, self.tensor_vmax, self.tensor_num = dlg.values()
             self._redraw_tensor(self._last_tensor_name)
     def del_run(self):
         runs = [i.text() for i in self.run_list.selectedItems()]
@@ -394,6 +398,7 @@ class LoggerUI(QMainWindow):
     # plotting – mutually-exclusive list clicks
     # --------------------------------------------------------------
     def plot_metric(self, item):
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         self._clear_other_lists(self.metric_list)
         metric = item.text()
         runs = [i.text() for i in self.run_list.selectedItems()]
@@ -416,6 +421,7 @@ class LoggerUI(QMainWindow):
                 continue
             ax.plot(x[mask], y[mask], marker='o', label=run)
             plotted += 1
+            QApplication.processEvents()
         if plotted == 0:
             return
         ax.set_xlabel("step")
@@ -423,6 +429,7 @@ class LoggerUI(QMainWindow):
         ax.legend()
         ax.grid(True, linestyle='--', alpha=.5)
         self.canvas.draw()
+        QApplication.restoreOverrideCursor()
 
     def show_image(self, item):
         self._clear_other_lists(self.image_list)
@@ -478,6 +485,7 @@ class LoggerUI(QMainWindow):
             all_vals = np.concatenate(arrays)
             vmin = self.tensor_vmin if self.tensor_vmin is not None else float(all_vals.min())
             vmax = self.tensor_vmax if self.tensor_vmax is not None else float(all_vals.max())
+            num = self.tensor_num if self.tensor_num is not None else 0
             if vmin == vmax:
                 delta = abs(vmin) * 0.01 if vmin != 0 else 1.0
                 vmin -= delta
@@ -487,7 +495,13 @@ class LoggerUI(QMainWindow):
             bin_edges = np.linspace(vmin, vmax, bins + 1)
             hist_arr = []
             for arr in arrays:
-                hist_arr.append(np.histogram(arr, bins=bin_edges)[0])
+                if num > 0 and num < arr.size:
+                    arr_flat = arr.ravel()
+                    arr_idx = np.random.choice(arr_flat.size, size=num, replace=False)
+                    arr_sample = arr_flat[arr_idx]
+                else:
+                    arr_sample = arr
+                hist_arr.append(np.histogram(arr_sample, bins=bin_edges)[0])
                 QApplication.processEvents()
             heat = np.stack(hist_arr, axis=1)
             # heat = np.stack([np.histogram(arr, bins=bin_edges)[0] for arr in arrays], axis=1)
