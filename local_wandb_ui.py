@@ -188,10 +188,16 @@ class LoggerUI(QMainWindow):
         reload_act.triggered.connect(self.reload_project)
         file_menu.addAction(reload_act)
 
+        rm_proj_act = QAction("Remove Project…", self)
+        rm_proj_act.setShortcut(QKeySequence("Ctrl+Shift+Del"))
+        rm_proj_act.triggered.connect(self.remove_project)
+        file_menu.addAction(rm_proj_act)
+
         exit_act = QAction("Eixt", self)
         exit_act.setShortcut(QKeySequence("Ctrl+Q"))
         exit_act.triggered.connect(self.close)
         file_menu.addAction(exit_act)
+
 
         view_menu = menubar.addMenu("View")
         toggle_act = QAction("Toggle Sidebar", self)
@@ -241,7 +247,35 @@ class LoggerUI(QMainWindow):
                 except Exception as e:
                     show_error(self, "Deletion failed", str(e))
         self.load_runs(self.project)
-    # --------------------------------------------------------------
+
+    def remove_project(self):
+        if not self.project:
+            QMessageBox.information(self, "Info", "No project selected.")
+            return
+        reply = QMessageBox.question(
+            self, "Confirm deletion",
+            f"Delete entire project '{self.project}' and ALL its runs?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        path = Path(self.base_dir) / self.project
+        if path.exists():
+            try:
+                import shutil
+                shutil.rmtree(path)
+                QMessageBox.information(self, "Deleted", f"Project '{self.project}' removed.")
+                self.project = None
+                self.populate_projects()          # refresh drop-down
+                if self.project_combo.count():
+                    self.project_combo.setCurrentIndex(0)  # select first valid
+                else:
+                    self.load_runs(None)          # empty list
+            except Exception as e:
+                show_error(self, "Deletion failed", str(e))
+        # --------------------------------------------------------------
     # theme / sidebar
     # --------------------------------------------------------------
     def toggle_theme(self, idx):
