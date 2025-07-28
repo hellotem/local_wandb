@@ -343,7 +343,6 @@ class LoggerUI(QMainWindow):
 
     def on_run_selection_changed(self):
         
-        QApplication.setOverrideCursor(Qt.WaitCursor)
         
         runs = [i.text() for i in self.run_list.selectedItems()]
         # clear lists
@@ -355,6 +354,7 @@ class LoggerUI(QMainWindow):
 
         metrics, images, tensors = set(), set(), set()
 
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         for r in runs:
             lw = self._get_lw(r)
             if not lw:
@@ -398,7 +398,6 @@ class LoggerUI(QMainWindow):
     # plotting – mutually-exclusive list clicks
     # --------------------------------------------------------------
     def plot_metric(self, item):
-        QApplication.setOverrideCursor(Qt.WaitCursor)
         self._clear_other_lists(self.metric_list)
         metric = item.text()
         runs = [i.text() for i in self.run_list.selectedItems()]
@@ -407,6 +406,7 @@ class LoggerUI(QMainWindow):
         self.figure.clear()
         ax = self.figure.add_subplot(111)
         plotted = 0
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         for run in runs:
             lw = self._get_lw(run)
             if not lw or not hasattr(lw, 'metrics_df'):
@@ -422,6 +422,7 @@ class LoggerUI(QMainWindow):
             ax.plot(x[mask], y[mask], marker='o', label=run)
             plotted += 1
             QApplication.processEvents()
+        QApplication.restoreOverrideCursor()
         if plotted == 0:
             return
         ax.set_xlabel("step")
@@ -429,7 +430,6 @@ class LoggerUI(QMainWindow):
         ax.legend()
         ax.grid(True, linestyle='--', alpha=.5)
         self.canvas.draw()
-        QApplication.restoreOverrideCursor()
 
     def show_image(self, item):
         self._clear_other_lists(self.image_list)
