@@ -342,42 +342,44 @@ class LoggerUI(QMainWindow):
                 lst.clearSelection()
 
     def on_run_selection_changed(self):
-        
-        
-        runs = [i.text() for i in self.run_list.selectedItems()]
-        # clear lists
-        self.metric_list.clear()
-        self.image_list.clear()
-        self.tensor_list.clear()
-        if not runs:
+        if getattr(self, '_selection_in_progress', False):
             return
+        self._selection_in_progress = True
+        try:
+            runs = [i.text() for i in self.run_list.selectedItems()]
+            # clear lists
+            self.metric_list.clear()
+            self.image_list.clear()
+            self.tensor_list.clear()
+            if not runs:
+                return
 
-        metrics, images, tensors = set(), set(), set()
+            metrics, images, tensors = set(), set(), set()
 
-        QApplication.setOverrideCursor(Qt.WaitCursor)
-        for r in runs:
-            lw = self._get_lw(r)
-            if not lw:
-                continue
-            # metrics: only if dataframe exists
-            if hasattr(lw, 'metrics_df'):
-                metrics.update(c for c in lw.metrics_df.columns if c != 'step')
-            # images & tensors: always
-            img_dir = lw.run_dir / "images"
-            if img_dir.exists():
-                images.update(p.name for p in img_dir.glob("*.png"))
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+            for r in runs:
+                lw = self._get_lw(r)
+                if not lw:
+                    continue
+                # metrics: only if dataframe exists
+                if hasattr(lw, 'metrics_df'):
+                    metrics.update(c for c in lw.metrics_df.columns if c != 'step')
+                # images & tensors: always
+                img_dir = lw.run_dir / "images"
+                if img_dir.exists():
+                    images.update(p.name for p in img_dir.glob("*.png"))
+                for npy in lw.tensor_dir.glob("*.npy"):
+                    name = npy.stem.partition("_step_")[0]
+                    tensors.add(name)
+
                 QApplication.processEvents()
-            for npy in lw.tensor_dir.glob("*.npy"):
-                name = npy.stem.partition("_step_")[0]
-                tensors.add(name)
-                QApplication.processEvents()
 
-            QApplication.processEvents()
-
-        self.metric_list.addItems(sorted(metrics))
-        self.image_list.addItems(sorted(images))
-        self.tensor_list.addItems(sorted(tensors))
-        QApplication.restoreOverrideCursor()
+            self.metric_list.addItems(sorted(metrics))
+            self.image_list.addItems(sorted(images))
+            self.tensor_list.addItems(sorted(tensors))
+        finally:
+            QApplication.restoreOverrideCursor()
+            self._selection_in_progress = False
 
     # --------------------------------------------------------------
     # LocalWandb cache
