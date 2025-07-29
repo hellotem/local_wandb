@@ -9,7 +9,7 @@ A lightweight local logging and visualization tool for machine learning experime
 - ✅ Support multiple runs selection for metric comparison.
 - ✅ And more...
 
-All data is saved under a structured folder in `local_wandb/`.
+All data is saved under a structured folder in `local_wandb/` on your computer.
 
 ---
 
@@ -23,7 +23,7 @@ All data is saved under a structured folder in `local_wandb/`.
 - ✅ 还有更多...
 
 
-所有数据均保存在 `local_wandb/` 的结构化文件夹中。
+所有数据均保存在你电脑里 `local_wandb/` 的结构化文件夹中。
 
 ---
 ## 🧪 Example Workflow
