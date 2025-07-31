@@ -13,7 +13,7 @@ All data is saved under a structured folder in `local_wandb/` in your computer.
 
 ---
 
-一款轻量化模型训练监测工具，具有类似 `wandb`功能但无需帐号和云端数据存储，可提供以下功能：
+一款轻量化模型训练监测工具，具有类似 `wandb`[Weight&Bias(https://wandb.ai/)]功能但无需帐号和云端数据存储，可提供以下功能：
 
 - ✅ 标量指标跟踪（例如损失函数、准确率等）
 - ✅ 图像和 Matplotlib 图形保存
