@@ -13,9 +13,9 @@ All data is saved under a structured folder in `local_wandb/` in your computer.
 
 ---
 
-一款轻量级的本地化 `wandb` 的离线替代方案，提供以下功能：
+一款轻量化模型训练监测工具，具有类似 `wandb`功能但无需帐号和云端数据存储，可提供以下功能：
 
-- ✅ 标量指标跟踪（例如损失函数、准确率）
+- ✅ 标量指标跟踪（例如损失函数、准确率等）
 - ✅ 图像和 Matplotlib 图形保存
 - ✅ 矩阵序列跟踪（例如权重随时间的变化）
 - ✅ 可运行 `local_wandb_ui.py` 进行离线 GUI 可视化 (需安装PyQt5软件包)
