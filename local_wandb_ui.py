@@ -36,17 +36,26 @@ def show_error(parent, title, msg, detail=None):
     dlg.exec_()
 
 # ------------------------------------------------------------------
+from PyQt5.QtWidgets import (
+    QDialog, QFormLayout, QSpinBox, QLineEdit, QDialogButtonBox, QPushButton
+)
+
 class TensorConfigDialog(QDialog):
     """Dialog to set bins & range for tensor heat-maps."""
-    def __init__(self, parent=None, bins=40, vmin=None, vmax=None, num=None):
+    def __init__(self, parent=None, bins=10, vmin=None, vmax=None, num=10000):
         super().__init__(parent)
         self.setWindowTitle("Customize Tensor")
-        self.setFixedSize(260, 180)
+        self.setFixedSize(260, 210)
+
+        self.default_bins = 10
+        self.default_vmin = None
+        self.default_vmax = None
+        self.default_num = 10000
 
         form = QFormLayout(self)
 
         self.bins_spin = QSpinBox()
-        self.bins_spin.setRange(5, 200)
+        self.bins_spin.setRange(2, 200)
         self.bins_spin.setValue(bins)
         form.addRow("Bins:", self.bins_spin)
 
@@ -57,10 +66,23 @@ class TensorConfigDialog(QDialog):
         form.addRow("Max value (empty=auto):", self.max_edit)
         form.addRow("Downsample (empty=all):", self.num_edit)
 
+        # Add Reset button
+        self.reset_button = QPushButton("Reset to default")
+        self.reset_button.clicked.connect(self.reset_to_defaults)
+        form.addRow(self.reset_button)
+
+        # OK and Cancel buttons
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         form.addRow(buttons)
+
+    def reset_to_defaults(self):
+        """Reset all input fields to their default values."""
+        self.bins_spin.setValue(self.default_bins)
+        self.min_edit.setText(str(self.default_vmin) if self.default_vmin is not None else "")
+        self.max_edit.setText(str(self.default_vmax) if self.default_vmax is not None else "")
+        self.num_edit.setText(str(self.default_num) if self.default_num is not None else "")
 
     def values(self):
         bins = self.bins_spin.value()
@@ -229,6 +251,7 @@ class LoggerUI(QMainWindow):
         if dlg.exec_():
             self.tensor_bins, self.tensor_vmin, self.tensor_vmax, self.tensor_num = dlg.values()
             self._redraw_tensor(self._last_tensor_name)
+            
     def del_run(self):
         runs = [i.text() for i in self.run_list.selectedItems()]
         if not runs:
@@ -244,6 +267,7 @@ class LoggerUI(QMainWindow):
         if reply != QMessageBox.Yes:
             return
 
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         for run in runs:
             path = Path(self.base_dir) / self.project / run
             if path.exists():
@@ -253,6 +277,7 @@ class LoggerUI(QMainWindow):
                 except Exception as e:
                     show_error(self, "Deletion failed", str(e))
         self.load_runs(self.project)
+        QApplication.restoreOverrideCursor()
 
     def remove_project(self):
         if not self.project:
@@ -268,6 +293,7 @@ class LoggerUI(QMainWindow):
             return
 
         path = Path(self.base_dir) / self.project
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         if path.exists():
             try:
                 import shutil
@@ -281,6 +307,7 @@ class LoggerUI(QMainWindow):
                     self.load_runs(None)          # empty list
             except Exception as e:
                 show_error(self, "Deletion failed", str(e))
+        QApplication.restoreOverrideCursor()
         # --------------------------------------------------------------
     # theme / sidebar
     # --------------------------------------------------------------
