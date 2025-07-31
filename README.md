@@ -1,6 +1,6 @@
 # Local WandB
 
-A lightweight local logging and visualization tool for machine learning experiments. Acts as an offline alternative to `wandb`, providing:
+A lightweight local logging and visualization tool for machine learning experiments. Acts as an offline alternative to `wandb`(Weight&Bias[https://wandb.ai/]), providing:
 
 - ✅ Scalar metric logging (e.g., loss, accuracy)
 - ✅ Image and Matplotlib figure saving
