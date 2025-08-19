@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QComboBox, QListWidget, QLabel, QMessageBox, QTextEdit, QGroupBox,
     QDialog, QSplitter, QAction, QMenuBar, QFileDialog, QPushButton,
-    QSpinBox, QLineEdit, QFormLayout, QDialogButtonBox
+    QSpinBox, QLineEdit, QFormLayout, QDialogButtonBox, QCheckBox
 )
 from PyQt5.QtCore import Qt, QSettings
 from PyQt5.QtGui import QPixmap, QPalette, QColor, QKeySequence
@@ -42,15 +42,16 @@ from PyQt5.QtWidgets import (
 
 class TensorConfigDialog(QDialog):
     """Dialog to set bins & range for tensor heat-maps."""
-    def __init__(self, parent=None, bins=10, vmin=None, vmax=None, num=10000):
+    def __init__(self, parent=None, bins=40, vmin=None, vmax=None, num=10000, checkbox=False):
         super().__init__(parent)
         self.setWindowTitle("Customize Tensor")
         self.setFixedSize(260, 210)
 
-        self.default_bins = 10
+        self.default_bins = 40
         self.default_vmin = None
         self.default_vmax = None
         self.default_num = 10000
+        self.default_checkbox = False
 
         form = QFormLayout(self)
 
@@ -66,10 +67,15 @@ class TensorConfigDialog(QDialog):
         form.addRow("Max value (empty=auto):", self.max_edit)
         form.addRow("Downsample (empty=all):", self.num_edit)
 
+        self.log_checkbox = QCheckBox("Log magnitude")
+        self.log_checkbox.setChecked(checkbox)
+        form.addRow(self.log_checkbox)
+
         # Add Reset button
         self.reset_button = QPushButton("Reset to default")
         self.reset_button.clicked.connect(self.reset_to_defaults)
         form.addRow(self.reset_button)
+
 
         # OK and Cancel buttons
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -83,13 +89,15 @@ class TensorConfigDialog(QDialog):
         self.min_edit.setText(str(self.default_vmin) if self.default_vmin is not None else "")
         self.max_edit.setText(str(self.default_vmax) if self.default_vmax is not None else "")
         self.num_edit.setText(str(self.default_num) if self.default_num is not None else "")
+        self.log_checkbox.setChecked(False)
 
     def values(self):
         bins = self.bins_spin.value()
         vmin = float(self.min_edit.text()) if self.min_edit.text().strip() else None
         vmax = float(self.max_edit.text()) if self.max_edit.text().strip() else None
         num = int(self.num_edit.text()) if self.num_edit.text().strip() else None
-        return bins, vmin, vmax, num
+        checkbox = self.log_checkbox.isChecked()
+        return bins, vmin, vmax, num, checkbox
 
 # ------------------------------------------------------------------
 class LoggerUI(QMainWindow):
@@ -109,6 +117,7 @@ class LoggerUI(QMainWindow):
         self.tensor_vmin = None
         self.tensor_vmax = None
         self.tensor_num = 10000
+        self.checked = False
         self._last_tensor_name = None   # string, not QListWidgetItem
 
         self._build_ui()
@@ -128,9 +137,9 @@ class LoggerUI(QMainWindow):
         self.left_widget = QWidget()
         self.left_widget.setMinimumWidth(250)
         self.left_widget.setMaximumWidth(260)
-        lv = QVBoxLayout(self.left_widget)
+        lv = QVBoxLayout(self.left_widget) # left panel layout
 
-        theme_lay = QHBoxLayout()
+        theme_lay = QHBoxLayout() # theme text and combo box
         theme_lay.addWidget(QLabel("Theme"))
         self.theme_combo = QComboBox()
         self.theme_combo.addItems(["Light", "Dark"])
@@ -139,7 +148,7 @@ class LoggerUI(QMainWindow):
         theme_lay.addWidget(self.theme_combo)
         lv.addLayout(theme_lay)
 
-        project_lay = QHBoxLayout()
+        project_lay = QHBoxLayout() # project text and combo box
         project_lay.addWidget(QLabel("Project"))
         self.project_combo = QComboBox()
         self.project_combo.currentTextChanged.connect(self.load_runs)
@@ -157,11 +166,14 @@ class LoggerUI(QMainWindow):
                             ("Tensors", "tensor_list")):
             lv.addWidget(QLabel(label))
             lst = QListWidget()
+            if label == "Metrics":
+                lst.setSelectionMode(QListWidget.ExtendedSelection)  # allow multiple
             lst.setMaximumHeight(120)
             setattr(self, attr, lst)
             lv.addWidget(lst, 1)
 
-        self.metric_list.itemClicked.connect(self.plot_metric)
+        # self.metric_list.itemClicked.connect(self.plot_metric)
+        self.metric_list.itemSelectionChanged.connect(self.plot_metrics_multi)
         self.image_list.itemClicked.connect(self.show_image)
         self.tensor_list.itemClicked.connect(self.show_tensor_sequence)
 
@@ -247,9 +259,9 @@ class LoggerUI(QMainWindow):
     # tensor customisation dialog + auto-redraw
     # --------------------------------------------------------------
     def open_tensor_config(self):
-        dlg = TensorConfigDialog(self, self.tensor_bins, self.tensor_vmin, self.tensor_vmax, self.tensor_num)
+        dlg = TensorConfigDialog(self, self.tensor_bins, self.tensor_vmin, self.tensor_vmax, self.tensor_num, self.checked)
         if dlg.exec_():
-            self.tensor_bins, self.tensor_vmin, self.tensor_vmax, self.tensor_num = dlg.values()
+            self.tensor_bins, self.tensor_vmin, self.tensor_vmax, self.tensor_num, self.checked = dlg.values()
             self._redraw_tensor(self._last_tensor_name)
             
     def del_run(self):
@@ -426,6 +438,50 @@ class LoggerUI(QMainWindow):
     # --------------------------------------------------------------
     # plotting – mutually-exclusive list clicks
     # --------------------------------------------------------------
+    def plot_metrics_multi(self):
+        self._clear_other_lists(self.metric_list)
+        metrics = [i.text() for i in self.metric_list.selectedItems()]
+        runs = [i.text() for i in self.run_list.selectedItems()]
+        if not runs or not metrics:
+            return
+
+        self.figure.clear()
+        ax = self.figure.add_subplot(111)
+        plotted = 0
+
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        for run in runs:
+            lw = self._get_lw(run)
+            if not lw or not hasattr(lw, 'metrics_df'):
+                continue
+            df = lw.metrics_df
+            if 'step' not in df.columns:
+                continue
+
+            x = df['step'].to_numpy(dtype=float)
+
+            for metric in metrics:
+                if metric not in df.columns:
+                    continue
+                y = df[metric].to_numpy(dtype=float)
+                mask = ~np.isnan(y)
+                if not np.any(mask):
+                    continue
+                # Label both run and metric if multiple metrics selected
+                lbl = f"{run} – {metric}" if len(metrics) > 1 else run
+                ax.plot(x[mask], y[mask], marker='o', label=lbl)
+                plotted += 1
+                QApplication.processEvents()
+
+        QApplication.restoreOverrideCursor()
+        if plotted == 0:
+            return
+        ax.set_xlabel("step")
+        ax.set_ylabel(", ".join(metrics) if len(metrics) == 1 else "metrics")
+        ax.legend()
+        ax.grid(True, linestyle='--', alpha=.5)
+        self.canvas.draw()
+
     def plot_metric(self, item):
         self._clear_other_lists(self.metric_list)
         metric = item.text()
@@ -538,8 +594,12 @@ class LoggerUI(QMainWindow):
             extent = [steps[0], steps[-1], bin_centers[0], bin_centers[-1]]
 
             ax = self.figure.add_subplot(rows, cols, idx)
-            im = ax.imshow(heat, aspect='auto', origin='lower', cmap='OrRd',
-                           extent=extent, interpolation='nearest')
+            if self.checked:
+                im = ax.imshow(np.log(1+heat), aspect='auto', origin='lower', cmap='OrRd',
+                            extent=extent, interpolation='nearest')
+            else:
+                im = ax.imshow(heat, aspect='auto', origin='lower', cmap='OrRd',
+                            extent=extent, interpolation='nearest')
             ax.set_title(run, fontsize=8)
             ax.set_xlabel("step")
             ax.set_ylabel("value")
