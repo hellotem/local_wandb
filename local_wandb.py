@@ -98,6 +98,8 @@ class LocalWandb:
 
     def log(self, metrics: dict, step: int = None):
         """Log scalar metrics; supports dynamic keys."""
+        if not isinstance(metrics, dict):
+            raise Exception('The first input metrics need to be a dict {"name": metric, ...}')
         if self._mode != "write":
             raise RuntimeError("Cannot log metrics in read mode.")
         for k, v in metrics.items():
@@ -114,6 +116,8 @@ class LocalWandb:
 
     def log_image(self, images: dict):
         """Log multiple images: dict[name] = ndarray."""
+        if not isinstance(images, dict):
+            raise Exception('The first input images need to be a dict {"name": image, ...}')
         if self._mode != "write":
             raise RuntimeError("Cannot log images in read mode.")
         for name, img in images.items():
@@ -122,6 +126,8 @@ class LocalWandb:
 
     def log_figure(self, figures: dict, dpi: int = 150):
         """Log multiple Matplotlib figures: dict[name] = Figure."""
+        if not isinstance(figures, dict):
+            raise Exception('The first input figures need to be a dict {"name": figure, ...}')
         if self._mode != "write":
             raise RuntimeError("Cannot log figures in read mode.")
         for name, fig in figures.items():
@@ -133,6 +139,8 @@ class LocalWandb:
         """Log multiple tensors: dict[name] = Tensor."""
         if self._mode != "write":
             raise RuntimeError("Cannot log tensors in read mode.")
+        if not isinstance(tensors, dict):
+            raise Exception('The first input tensors need to be a dict {"name": tensor, ...}')
         if step is None:
             step = self._step
         for name, tensor in tensors.items():
