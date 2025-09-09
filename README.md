@@ -27,7 +27,7 @@ All data is saved under a structured folder in `local_wandb/` in your computer.
 
 ---
 ## 🧪 Example Workflow
-Put `local_wandb.py` and `local_wandb_ui.py` in the root directory of the project code. 
+Put `local_wandb.py` and `local_wandb_ui.py` in the root directory of the project code. All log functions (log, log_tensor, log_figure, log_image) take a dict as the first input and step (optional) as the second input.
 ```python
 from local_wandb import LocalWandb
 
