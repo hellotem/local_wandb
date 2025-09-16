@@ -29,7 +29,7 @@ class TeeOutput:
                 s.flush()
 
 class LocalWandb:
-    def __init__(self, project: str, name: str = None, base_dir: str = "local_wandb", mode: str = "write"):
+    def __init__(self, project: str, name: str = None, base_dir: str = "logs", mode: str = "write"):
         """
         Initialize LocalWandb.
         mode="write": creates new run; mode="read": opens existing run with given name.
@@ -229,7 +229,7 @@ class LocalWandb:
             self._terminal_log.close()
 
     @staticmethod
-    def list_runs(project: str, base_dir: str = "local_wandb"):
+    def list_runs(project: str, base_dir: str = "logs"):
         """List runs sorted by datetime from run name."""
         proj = Path(base_dir) / project
         if not proj.exists():
@@ -244,7 +244,7 @@ class LocalWandb:
         return [name for _, name in runs]
 
     @staticmethod
-    def compare_metrics(project: str, metric: str, base_dir: str = "local_wandb", runs: list = None, figsize=(8,4)):
+    def compare_metrics(project: str, metric: str, base_dir: str = "logs", runs: list = None, figsize=(8,4)):
         """Compare a specific metric across specified runs (or all if None)."""
         available = LocalWandb.list_runs(project, base_dir)
         selected = runs if runs is not None else available

@@ -106,7 +106,7 @@ class LoggerUI(QMainWindow):
         self.setWindowTitle("Local-Wandb Viewer")
         self.resize(1500, 950)
 
-        self.base_dir = "local_wandb"
+        self.base_dir = "logs"
         self.project = None
         self.lw_instances = {}
         self.settings = QSettings("local_logger", "ui")
