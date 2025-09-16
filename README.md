@@ -9,7 +9,7 @@ A lightweight local logging and visualization tool for machine learning experime
 - ✅ Support multiple runs selection for metric comparison.
 - ✅ And more...
 
-All data is saved under a structured folder in `local_wandb/` in your computer.
+All data is saved under a structured folder in `logs/` in your computer.
 
 ---
 
@@ -23,7 +23,7 @@ All data is saved under a structured folder in `local_wandb/` in your computer.
 - ✅ 还有更多...
 
 
-所有数据均保存在你电脑里 `local_wandb/` 的结构化文件夹中。
+所有数据均保存在你电脑里 `logs/` 的结构化文件夹中。
 
 ---
 ## 🧪 Example Workflow
@@ -77,7 +77,7 @@ run = LocalWandb(project="my_project", name="experiment_1")
 This creates a folder:
 
 ```
-local_wandb/my_project/run-YYYYMMDD-HHMMSS-experiment_1/
+logs/my_project/run-YYYYMMDD-HHMMSS-experiment_1/
 ```
 
 ---
@@ -178,7 +178,7 @@ run.finish()  # Closes metrics.csv
 
 ## 🗂 Directory Layout
 ```
-local_wandb/
+logs/
 └── my_project/
     └── run-20250627-153000-experiment1/
         ├── config.json
